@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Supplier {
+  id        Int        @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  products  Product[]
+  purchases Purchase[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Customer {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  phone              String?
+  email              String?
+  address            String?
+  notes              String?
+  sales              Sale[]
+  accountsReceivable AccountReceivable[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Product {
+  id            Int                 @id @default(autoincrement())
+  code          String              @unique
+  name          String
+  description   String?
+  brand         String?
+  priceCost     Float               @default(0)
+  priceSale     Float               @default(0)
+  stock         Int                 @default(0)
+  minStock      Int                 @default(5)
+  imageUrl      String?
+  categoryId    Int?
+  supplierId    Int?
+  category      Category?           @relation(fields: [categoryId], references: [id])
+  supplier      Supplier?           @relation(fields: [supplierId], references: [id])
+  saleItems     SaleItem[]
+  purchaseItems PurchaseItem[]
+  movements     InventoryMovement[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model Sale {
+  id                Int                @id @default(autoincrement())
+  total             Float
+  paymentType       String             @default("CASH")
+  dueDate           DateTime?
+  customerId        Int?
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  items             SaleItem[]
+  accountReceivable AccountReceivable?
+  createdAt         DateTime           @default(now())
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  quantity  Int
+  price     Float
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  saleId    Int
+  sale      Sale    @relation(fields: [saleId], references: [id])
+}
+
+model Purchase {
+  id             Int            @id @default(autoincrement())
+  purchaseNumber String         @unique
+  purchaseDate   DateTime       @default(now())
+  total          Float          @default(0)
+  status         String         @default("COMPLETED")
+  notes          String?
+  supplierId     Int
+  supplier       Supplier       @relation(fields: [supplierId], references: [id])
+  items          PurchaseItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id         Int      @id @default(autoincrement())
+  quantity   Int
+  unitCost   Float
+  subtotal   Float
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  purchaseId Int
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+}
+
+model BusinessConfig {
+  id        Int      @id @default(autoincrement())
+  name      String   @default("ControlStock Pro")
+  address   String?
+  phone     String?
+  email     String?
+  nit       String?
+  currency  String   @default("GTQ")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryMovement {
+  id            Int      @id @default(autoincrement())
+  productId     Int
+  type          String
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String?
+  referenceId   Int?
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
+
+model AccountReceivable {
+  id             Int                 @id @default(autoincrement())
+  originalAmount Float
+  paidAmount     Float               @default(0)
+  balance        Float
+  status         String              @default("PENDING")
+  dueDate        DateTime
+  notes          String?
+  saleId         Int                 @unique
+  sale           Sale                @relation(fields: [saleId], references: [id])
+  customerId     Int
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  payments       ReceivablePayment[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model ReceivablePayment {
+  id                  Int               @id @default(autoincrement())
+  amount              Float
+  paymentDate         DateTime          @default(now())
+  paymentMethod       String?
+  reference           String?
+  notes               String?
+  accountReceivableId Int
+  accountReceivable   AccountReceivable @relation(fields: [accountReceivableId], references: [id])
+  createdAt           DateTime          @default(now())
+}
